@@ -1,13 +1,13 @@
 module Text.Markdown.SlamDown.Smolder where
 
-import Data.Traversable (traverse_)
 import Control.Monad.Free (liftF)
 import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse_)
+import Prelude hiding (div)
 import Text.Markdown.SlamDown (SlamDownP(..))
 import Text.Markdown.SlamDown.Syntax (Block(..), CodeBlockType(..), Inline(..), LinkTarget(..), ListType(..), SlamDownP)
-import Text.Smolder.HTML (br, p)
+import Text.Smolder.HTML (blockquote, br, hr, li, ol, p, ul)
 import Text.Smolder.Markup (Markup, MarkupM(..), parent, text)
-import Prelude hiding (div)
 
 empty :: ∀ e. Markup e
 empty = liftF $ Empty unit
@@ -16,15 +16,19 @@ fromSlamDown :: SlamDownP ~> Markup
 fromSlamDown (SlamDown blocks) = traverse_ translateBlock blocks
 
 translateBlock :: Block ~> Markup
-translateBlock Rule = empty
+translateBlock Rule = hr
 translateBlock (LinkReference s1 s2) = empty
 translateBlock (CodeBlock (Fenced b s) ss) = empty
 translateBlock (CodeBlock Indented ss) = empty
-translateBlock (Lst (Ordered s) _) = empty
-translateBlock (Lst (Bullet s) _) = empty
-translateBlock (Blockquote _) = empty
+translateBlock (Lst (Ordered s) lists) = ol $ traverse_ (traverse_ (replaceParagraph li)) lists
+translateBlock (Lst (Bullet s) lists) = ul $ traverse_ (traverse_ (replaceParagraph li)) lists
+translateBlock (Blockquote blocks) = blockquote $ traverse_ translateBlock blocks
 translateBlock (Header n inlines) = parent ("h" <> show n) $ traverse_ translateInline inlines
-translateBlock (Paragraph inlines) = p $ traverse_ translateInline inlines
+translateBlock par@(Paragraph _) = replaceParagraph p par
+
+replaceParagraph :: (∀ e. Markup e -> Markup e) -> Block ~> Markup
+replaceParagraph container (Paragraph inlines) = container $ traverse_ translateInline inlines
+replaceParagraph _ b = translateBlock b
 
 translateInline :: Inline ~> Markup
 translateInline (FormField _ _ _) = empty
