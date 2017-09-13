@@ -1,48 +1,48 @@
 module Text.Markdown.SlamDown.Smolder where
 
+import Text.Markdown.SlamDown as S
 import Control.Monad.Free (liftF)
 import Data.List (List(..), intercalate, (:))
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse_)
-import Text.Markdown.SlamDown (SlamDownP(..))
-import Text.Markdown.SlamDown.Syntax (Block(..), CodeBlockType(..), Inline(..), LinkTarget(..), ListType(..), SlamDownP)
-import Text.Smolder.HTML (blockquote, br, code, hr, li, ol, a, p, pre, ul)
-import Text.Smolder.HTML.Attributes (href)
+import Text.Smolder.HTML (blockquote, br, code, hr, li, ol, a, p, pre, ul, strong, em)
+import Text.Smolder.HTML.Attributes (href, className)
 import Text.Smolder.Markup (Markup, MarkupM(..), parent, text, (!))
 import Prelude hiding (div)
 
 empty :: ∀ e. Markup e
 empty = liftF $ Empty unit
 
-fromSlamDown :: SlamDownP ~> Markup
-fromSlamDown (SlamDown blocks) = traverse_ translateBlock blocks
+fromSlamDown :: S.SlamDownP ~> Markup
+fromSlamDown (S.SlamDown blocks) = traverse_ translateBlock blocks
 
-translateBlock :: Block ~> Markup
-translateBlock Rule = hr
-translateBlock (LinkReference label dest) = a ! href dest $ text label
-translateBlock (CodeBlock (Fenced b s) ss) = p $ code $ text $ intercalate "\n" ss
-translateBlock (CodeBlock Indented ss) = pre $ code $ text $ intercalate "\n" ss
-translateBlock (Lst (Ordered _) items) = ol $ traverse_ (traverse_ (replaceParagraph li)) items
-translateBlock (Lst (Bullet _) items) = ul $ traverse_ (traverse_ (replaceParagraph li)) items
-translateBlock (Blockquote blocks) = blockquote $ traverse_ translateBlock blocks
-translateBlock (Header n inlines) = parent ("h" <> show n) $ traverse_ translateInline inlines
-translateBlock par@(Paragraph _) = replaceParagraph p par
+translateBlock :: S.Block ~> Markup
+translateBlock S.Rule = hr
+translateBlock (S.LinkReference label dest) = a ! href dest $ text label
+translateBlock (S.CodeBlock (S.Fenced _ "") ss) = pre $ code $ text $ intercalate "\n" ss
+translateBlock (S.CodeBlock (S.Fenced _ lang) ss) = pre $ code ! className ("language-" <> lang) $ text $ intercalate "\n" ss
+translateBlock (S.CodeBlock S.Indented ss) = pre $ code $ text $ intercalate "\n" ss
+translateBlock (S.Lst (S.Ordered _) items) = ol $ traverse_ (traverse_ (replaceParagraph li)) items
+translateBlock (S.Lst (S.Bullet _) items) = ul $ traverse_ (traverse_ (replaceParagraph li)) items
+translateBlock (S.Blockquote blocks) = blockquote $ traverse_ translateBlock blocks
+translateBlock (S.Header n inlines) = parent ("h" <> show n) $ traverse_ translateInline inlines
+translateBlock (S.Paragraph inlines) = p $ traverse_ translateInline inlines
 
-replaceParagraph :: (∀ e. Markup e -> Markup e) -> Block ~> Markup
-replaceParagraph container (Paragraph (inline : Nil)) = container $ translateInline inline
+replaceParagraph :: (∀ e. Markup e -> Markup e) -> S.Block ~> Markup
+replaceParagraph container (S.Paragraph (inline : Nil)) = container $ translateInline inline
 replaceParagraph _ b = translateBlock b
 
-translateInline :: Inline ~> Markup
-translateInline (FormField _ _ _) = empty
-translateInline (Image _ _) = empty
-translateInline (Link _ (ReferenceLink Nothing)) = empty
-translateInline (Link _ (ReferenceLink (Just _))) = empty
-translateInline (Link _ (InlineLink _)) = empty
-translateInline (Code _ _) = empty
-translateInline (Strong _) = empty
-translateInline (Emph _) = empty
-translateInline LineBreak = br
-translateInline SoftBreak = empty
-translateInline Space = text " "
-translateInline (Entity _) = empty
-translateInline (Str s) = text s
+translateInline :: S.Inline ~> Markup
+translateInline (S.FormField _ _ _) = empty-- TODO
+translateInline (S.Image _ _) = empty-- TODO
+translateInline (S.Link _ (S.ReferenceLink Nothing)) = empty-- TODO
+translateInline (S.Link _ (S.ReferenceLink (Just _))) = empty-- TODO
+translateInline (S.Link _ (S.InlineLink _)) = empty-- TODO
+translateInline (S.Code b s) = code $ text s
+translateInline (S.Strong inlines) = strong $ traverse_ translateInline inlines
+translateInline (S.Emph inlines) = em $ traverse_ translateInline inlines
+translateInline S.LineBreak = br
+translateInline S.SoftBreak = text "\n"
+translateInline S.Space = text " "
+translateInline (S.Entity _) = empty -- TODO
+translateInline (S.Str s) = text s

@@ -15,8 +15,8 @@ import Test.Unit.Main (runTest)
 import Text.Markdown.SlamDown (SlamDownP)
 import Text.Markdown.SlamDown.Parser (parseMd)
 import Text.Markdown.SlamDown.Smolder (fromSlamDown)
-import Text.Smolder.HTML (blockquote, a, h1, h2, h3, hr, li, ol, p, ul)
-import Text.Smolder.HTML.Attributes (href)
+import Text.Smolder.HTML (a, blockquote, br, code, em, h1, h2, h3, hr, li, ol, p, pre, strong, ul)
+import Text.Smolder.HTML.Attributes (className, href)
 import Text.Smolder.Markup (Markup, parent, text, (!))
 import Text.Smolder.Renderer.String (render)
 
@@ -27,32 +27,44 @@ main :: ∀ e. Eff ( console    :: CONSOLE
                  ) Unit
 main = runTest $
   suite "SlamDown ~> Markup" do
-    test "translate horizontal line" $
+    test "horizontal line" $
       matchMd "---" hr
-    test "translate link reference" $
+    test "link reference" $
       matchMd "[foo]: /url" (a ! href "/url" $ text "foo")
-    test "translate paragraph with string" $
+    test "paragraph with string" $
       matchMd "foo" (p $ text "foo")
-    test "translate header (1) with string" $
+    test "header (1) with string" $
       matchMd "# foo" (h1 $ text "foo")
-    test "translate header (2) with string" $
+    test "header (2) with string" $
       matchMd "## foo" (h2 $ text "foo")
-    test "translate header (3) with string" $
+    test "header (3) with string" $
       matchMd "### foo" (h3 $ text "foo")
-    test "translate header (4) with string" $
+    test "header (4) with string" $
       matchMd "#### foo" (parent "h4" $ text "foo")
-    test "translate header (5) with string" $
+    test "header (5) with string" $
       matchMd "##### foo" (parent "h5" $ text "foo")
-    test "translate header (6) with string" $
+    test "header (6) with string" $
       matchMd "###### foo" (parent "h6" $ text "foo")
-    test "translate blockquote" $
+    test "blockquote" $
       matchMd "> foo" (blockquote $ p $ text "foo")
-    test "translate ordered list" $
+    test "ordered list" $
       matchMd "1. foo\n1. bar" (ol $ (li $ text "foo") *> (li $ text "bar"))
-    -- test "translate unordered list with several paragraps in item" $
-    --   matchMd " - foo\nbar" (ul $ (li $ (p $ text "foo") *> (p $ text "bar")))
-    test "translate unordered list" $
+    test "unordered list" $
       matchMd "- foo\n- bar" (ul $ (li $ text "foo") *> (li $ text "bar"))
+    test "indented code block" $
+      matchMd "    indented" (pre $ code $ text "indented")
+    test "fenced code block" $
+      matchMd "```haskell\nfenced\n```" (pre $ code ! className "language-haskell" $ text "fenced")
+    test "code span" $
+      matchMd "``\nfoo\n``" (p $ code $ text "foo")
+    test "emphasised text" $
+      matchMd "_foo_" (p $ em $ text "foo")
+    test "strong text" $
+      matchMd "__foo__" (p $ strong $ text "foo")
+    test "hard line break" $
+      matchMd "foo  \nbaz" (p $ (text "foo") *> br *> (text "baz"))
+    test "soft line break" $
+      matchMd "foo\nbaz" (p $ text "foo\nbaz")
 
 type Markdown = String
 
