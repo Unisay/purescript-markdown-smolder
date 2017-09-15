@@ -5,9 +5,10 @@ import Control.Monad.Free (liftF)
 import Data.List (List(..), intercalate, (:))
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse_)
-import Text.Smolder.HTML (blockquote, br, code, hr, li, ol, a, p, pre, ul, strong, em)
-import Text.Smolder.HTML.Attributes (href, className)
+import Text.Smolder.HTML (a, blockquote, br, code, em, hr, img, li, ol, p, pre, strong, ul)
+import Text.Smolder.HTML.Attributes (alt, className, href, src)
 import Text.Smolder.Markup (Markup, MarkupM(..), parent, text, (!))
+import Text.Smolder.Renderer.String (render)
 import Prelude hiding (div)
 
 empty :: ∀ e. Markup e
@@ -34,7 +35,7 @@ replaceParagraph _ b = translateBlock b
 
 translateInline :: S.Inline ~> Markup
 translateInline (S.FormField _ _ _) = empty-- TODO
-translateInline (S.Image _ _) = empty-- TODO
+translateInline (S.Image inlines s) = img ! src s ! alt (render $ traverse_ translateInline inlines)
 translateInline (S.Link _ (S.ReferenceLink Nothing)) = empty-- TODO
 translateInline (S.Link _ (S.ReferenceLink (Just _))) = empty-- TODO
 translateInline (S.Link _ (S.InlineLink _)) = empty-- TODO

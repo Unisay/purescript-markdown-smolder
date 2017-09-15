@@ -15,8 +15,8 @@ import Test.Unit.Main (runTest)
 import Text.Markdown.SlamDown (SlamDownP)
 import Text.Markdown.SlamDown.Parser (parseMd)
 import Text.Markdown.SlamDown.Smolder (fromSlamDown)
-import Text.Smolder.HTML (a, blockquote, br, code, em, h1, h2, h3, hr, li, ol, p, pre, strong, ul)
-import Text.Smolder.HTML.Attributes (className, href)
+import Text.Smolder.HTML (a, blockquote, br, code, em, h1, h2, h3, hr, img, li, ol, p, pre, strong, ul)
+import Text.Smolder.HTML.Attributes (alt, className, href, src)
 import Text.Smolder.Markup (Markup, parent, text, (!))
 import Text.Smolder.Renderer.String (render)
 
@@ -65,6 +65,8 @@ main = runTest $
       matchMd "foo  \nbaz" (p $ (text "foo") *> br *> (text "baz"))
     test "soft line break" $
       matchMd "foo\nbaz" (p $ text "foo\nbaz")
+    test "image" $
+      matchMd "![foo](/url)" (p $ img ! src "/url" ! alt "foo")
 
 type Markdown = String
 
